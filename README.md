@@ -16,11 +16,17 @@ Right now, we only support to mock the function which is declared in table, and 
 local Mock = require("Mock")
 
 local function testFoo()
+
     local TestMock = Mock:new("TestMock")
+    
     TestMock:mock("foo", "outputPara", 1)
+    
     print(TestMock.foo())
+    
     print(TestMock.foo())
+    
     TestMock:verify()
+    
 end
 
 return testFoo()
