@@ -11,6 +11,7 @@ local function testFoo()
     local TestMock = Mock:new("TestMock")
     TestMock:mock("foo", "outputPara", 1)
     print(TestMock.foo())
+    print(TestMock.foo())
     TestMock:verify()
 end
 

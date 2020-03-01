@@ -167,11 +167,15 @@ function Method:verify()
 end
 
 ------------------------private functions for method---------------------------------
-function Method:checkExpectCalls(self)
-    local expectCalls = self._l_method_expect_calls_
+function Method:checkExpectCalls(mockMethod)
+    for key,val in pairs(mockMethod) do
+        print(key)
+        print(val)
+    end
+    local expectCalls = mockMethod._l_method_expect_calls_
     for key, val in pairs(expectCalls) do
         if not val._l_method_expect_times:equal(val._l_method_actual_times_) then
-            Error:new(buildErrMsg(self)):throw()
+            Error:new(Method:buildErrMsg(mockMethod._l_method_class_name, mockMethod._l_method_name_, val)):throw()
         end
     end
 end
@@ -179,14 +183,14 @@ end
 function Method:checkUnExpectCalls(self)
     local unExpectCalls = self._l_method_unexpect_calls_
     for key, val in pairs(unExpectCalls) do
-        Error:new(buildErrMsg(self)):throw()
+        Error:new(Method:buildErrMsg(mockMethod._l_method_class_name, mockMethod._l_method_name_, val)):throw()
     end
 end
 
-function Method:buildErrMsg(self)
-    local msg = self._l_method_class_name .. "." .. self._l_method_name_ .. self._l_method_args_:toString() .. " Call times not as expect\n"
-    msg = msg .. " Expect:" .. tostring(self._l_method_expect_times:get()) .. "\n"
-    msg = msg .. " Actual:" .. tostring(self._l_method_actual_times_:get())
+function Method:buildErrMsg(className, functionName, mockMethod)
+    local msg = className .. "." .. functionName .. mockMethod._l_method_args_:toString() .. " Call times not as expect\n"
+    msg = msg .. " Expect:" .. tostring(mockMethod._l_method_expect_times:get()) .. "\n"
+    msg = msg .. " Actual:" .. tostring(mockMethod._l_method_actual_times_:get())
     return msg
 end
 
@@ -215,7 +219,7 @@ end
 -------------------class for Mock--------------------
 local Mock = {}
 function Mock:new(className)
-    local mock = { _l_mock_class_name_ = className }
+    local mock = { _l_mock_class_name_ = className, _l_mock_methods_ = {} }
     setmetatable(mock, self)
     self.__index = self;
     return mock
@@ -223,20 +227,23 @@ end
 
 function Mock:mock(functionName, result, times, ...)
     local mockMethodKey = self._l_mock_class_name_ .. "-" .. functionName
-    if self.mockMethodKey == nil then
-        print(mockMethodKey)
-        local mockMethod = Method:new(functionName)
+    if self._l_mock_methods_.mockMethodKey == nil then
+        local mockMethod = Method:new(self._l_mock_class_name_,functionName)
         mockMethod:mock(result, times, ...)
         self[functionName] = function(...)
-            print(mockMethodKey)
             return mockMethod:result(...)
         end
-        self.mockMethodKey = mockMethod
+        self._l_mock_methods_.mockMethodKey = mockMethod
     end
-    return self.mockMethodKey
+    return self._l_mock_methods_.mockMethodKey
 end
 
 function Mock:verify()
+    local allMockMethods = self._l_mock_methods_
+    for key, val in pairs(allMockMethods) do
+        val:verify()
+    end
+
 
 end
 
