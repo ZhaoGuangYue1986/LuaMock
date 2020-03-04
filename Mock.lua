@@ -25,9 +25,12 @@ local function isTableContains(tab, element)
     if tab == nil and 'table' == type(tab) then
         for key, val in pairs(tab) do
             if type(val) == type(element) then
-                return isEq(element, val)
+                if not isEq(element, val) then
+                    return false
+                end
             end
         end
+        return true
     end
     return false
 end
@@ -168,10 +171,10 @@ end
 
 ------------------------private functions for method---------------------------------
 function Method:checkExpectCalls(mockMethod)
-    for key,val in pairs(mockMethod) do
-        print(key)
-        print(val)
-    end
+    --for key,val in pairs(mockMethod) do
+    --    print(key)
+    --    print(val)
+    --end
     local expectCalls = mockMethod._l_method_expect_calls_
     for key, val in pairs(expectCalls) do
         if not val._l_method_expect_times:equal(val._l_method_actual_times_) then
