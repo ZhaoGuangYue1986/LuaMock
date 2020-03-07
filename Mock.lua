@@ -22,11 +22,11 @@ local function isEq(expect, actual)
 end
 
 local function isTableContains(tab, element)
-    if tab == nil and 'table' == type(tab) then
+    if tab ~= nil and 'table' == type(tab) then
         for key, val in pairs(tab) do
             if type(val) == type(element) then
-                if not isEq(element, val) then
-                    return false
+                if isEq(element, val) then
+                    return true
                 end
             end
         end
@@ -35,7 +35,7 @@ local function isTableContains(tab, element)
     return false
 end
 
-local function isTableEq(expect, actual)
+function isTableEq(expect, actual)
     if expect ~= nil and actual ~= nil then
         if 'table' == type(expect) and 'table' == type(actual) and #expect == #actual then
             for key, val in pairs(expect) do
@@ -49,6 +49,9 @@ local function isTableEq(expect, actual)
     return false;
 end
 
+local function log(msg)
+    print("[LUA MOCK] " .. msg)
+end
 -------------------class for Error-------------------
 local Error = {}
 function Error:new(msg, code)
@@ -104,11 +107,14 @@ function Args:equal(other)
 end
 
 function Args:toString()
-    local rtn = " ("
+    local argStr = ""
     for key, val in pairs(self._l_args_val_) do
-        rtn = rtn .. tostring(val)
+        if argStr ~= "" then
+            argStr = argStr .. ","
+        end
+        argStr = argStr .. tostring(val)
     end
-    return rtn .. " )"
+    return "(" .. argStr .. ")"
 end
 
 -------------------class for Method--------------------
@@ -161,39 +167,44 @@ function Method:result(...)
             return val._l_method_rlt_
         end
     end
-    return Method:unExpectCalls(self, ...)
+    return Method:unExpectCalls(self, 1, ...)
 end
 
 function Method:verify()
-    Method:checkExpectCalls(self)
-    Method:checkUnExpectCalls(self)
+    local msg = Method:checkExpectCalls(self)
+    msg = msg .. Method:checkUnExpectCalls(self)
+    return msg
 end
 
+function Method:getName()
+    return self._l_method_class_name .. "." .. self._l_method_name_
+end
 ------------------------private functions for method---------------------------------
 function Method:checkExpectCalls(mockMethod)
-    --for key,val in pairs(mockMethod) do
-    --    print(key)
-    --    print(val)
-    --end
+    local msg = ""
     local expectCalls = mockMethod._l_method_expect_calls_
     for key, val in pairs(expectCalls) do
         if not val._l_method_expect_times:equal(val._l_method_actual_times_) then
-            Error:new(Method:buildErrMsg(mockMethod._l_method_class_name, mockMethod._l_method_name_, val)):throw()
+            msg = msg .. Method:buildErrMsg(mockMethod._l_method_class_name, mockMethod._l_method_name_, val)
         end
     end
+    return msg
 end
 
-function Method:checkUnExpectCalls(self)
-    local unExpectCalls = self._l_method_unexpect_calls_
+function Method:checkUnExpectCalls(mockMethod)
+    local msg = ""
+    local unExpectCalls = mockMethod._l_method_unexpect_calls_
     for key, val in pairs(unExpectCalls) do
-        Error:new(Method:buildErrMsg(mockMethod._l_method_class_name, mockMethod._l_method_name_, val)):throw()
+        msg = msg .. Method:buildErrMsg(mockMethod._l_method_class_name, mockMethod._l_method_name_, val)
     end
+    return msg
 end
 
 function Method:buildErrMsg(className, functionName, mockMethod)
-    local msg = className .. "." .. functionName .. mockMethod._l_method_args_:toString() .. " Call times not as expect\n"
-    msg = msg .. " Expect:" .. tostring(mockMethod._l_method_expect_times:get()) .. "\n"
-    msg = msg .. " Actual:" .. tostring(mockMethod._l_method_actual_times_:get())
+    local tabSpace = "   "
+    local msg = tabSpace .. className .. "." .. functionName .. mockMethod._l_method_args_:toString() .. " Call times not as expect\n"
+    msg = msg .. tabSpace .. "Expect:" .. tostring(mockMethod._l_method_expect_times:get()) .. "\n"
+    msg = msg .. tabSpace .. "Actual:" .. tostring(mockMethod._l_method_actual_times_:get())
     return msg
 end
 
@@ -203,13 +214,13 @@ function Method:createExpectCallArgs(result, times, args)
     return { _l_method_args_ = args, _l_method_expect_times = expectTimes, _l_method_actual_times_ = actualTimes, _l_method_rlt_ = result }
 end
 
-function Method:unExpectCalls(self, ...)
+function Method:unExpectCalls(self, times, ...)
     local args = Args:new(...)
     local actualTimes = Times:new(times)
     local expectTimes = Times:new(0)
     local unExpectCalls = self._l_method_unexpect_calls_
     for key, val in pairs(unExpectCalls) do
-        if args:isEq(val._l_method_args_) then
+        if args:equal(val._l_method_args_) then
             val._l_method_actual_times_:increase(1)
             return nil
         end
@@ -230,24 +241,28 @@ end
 
 function Mock:mock(functionName, result, times, ...)
     local mockMethodKey = self._l_mock_class_name_ .. "-" .. functionName
-    if self._l_mock_methods_.mockMethodKey == nil then
-        local mockMethod = Method:new(self._l_mock_class_name_,functionName)
-        mockMethod:mock(result, times, ...)
+    if self._l_mock_methods_[mockMethodKey] == nil then
+        local mockMethod = Method:new(self._l_mock_class_name_, functionName):mock(result, times, ...)
         self[functionName] = function(...)
             return mockMethod:result(...)
         end
         self._l_mock_methods_.mockMethodKey = mockMethod
+    else
+        self._l_mock_methods_[mockMethodKey]:mock(result, times, ...)
     end
     return self._l_mock_methods_.mockMethodKey
 end
 
 function Mock:verify()
+    local msg = ""
     local allMockMethods = self._l_mock_methods_
     for key, val in pairs(allMockMethods) do
-        val:verify()
+        msg = msg .. val:verify()
     end
-
-
+    self._l_mock_methods_ = {}
+    if msg ~= "" then
+        Error:new(msg):throw()
+    end
 end
 
 return Mock
