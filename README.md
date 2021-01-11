@@ -3,7 +3,7 @@
 
 （A very simple and easy use Lua Mock Framwork）
 
-site: http://www.ostack.cn
+欢迎大家到 http://www.ostack.cn 交流编程经验
 
 # TODO 
 目前只支持对table表中声明的函数进行mock，后续考虑支持mock全局函数，不过因为lua 5.1和5.3 版本对全局env的方式不同，所以尚未考虑好怎么处理。
