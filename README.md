@@ -30,3 +30,9 @@ local function testFoo()
 end
 
 return testFoo()
+
+
+# 相關倉庫
+https://github.com/ostack/LuaUnit
+https://github.com/ostack/LuaLogger
+https://github.com/ostack/LuaMock
