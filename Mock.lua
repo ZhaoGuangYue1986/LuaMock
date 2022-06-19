@@ -35,7 +35,7 @@ local function isTableContains(tab, element)
     return false
 end
 
-function isTableEq(expect, actual)
+local function isTableEq(expect, actual)
     if expect ~= nil and actual ~= nil then
         if 'table' == type(expect) and 'table' == type(actual) and #expect == #actual then
             for key, val in pairs(expect) do
