@@ -72,5 +72,16 @@ function TestCases:testmock_expect_call_times_not_as_expect()
     Assert:equal(mockedCodeMsg,rtnCodeMsg);
 end
 
+function TestCases:testmock_expect_call_splite_rlt_and_time()
+    local mockedCodeMsg = "Code_300";
+    globalMsgManager:expectCall("getMsgByCode"):with(200):times(1):willRtn(mockedCodeMsg)
+    local rtnCodeMsg = NeedTestTable:test_use_one_arg_function(200);
+    Assert:equal(mockedCodeMsg,rtnCodeMsg);
+end
+
+
+
+
+
 
 return TestCases:run()

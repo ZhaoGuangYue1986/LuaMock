@@ -125,6 +125,7 @@ function Method:new(className, methodName)
     method.with = self.with
     method.result = self.result
     method.times = self.times
+    method.willRtn = self.willRtn
     method.verify = self.verify
     return method
 end
@@ -134,11 +135,11 @@ function Method:times(times)
     return self
 end
 function Method:with(...)
-    self:mock(nil, 1, ...)
+    self:mock(nil,0,...)
     return self
 end
 
-function Method:will(result)
+function Method:willRtn(result)
     self._l_current_arg_._l_method_rlt_ = result;
     return self
 end
@@ -165,6 +166,8 @@ function Method:result(...)
         if val._l_method_args_:equal(actualArgs) then
             val._l_method_actual_times_:increase(1)
             return val._l_method_rlt_
+        else
+            log("actualArgs:"..actualArgs:toString()..",mockArgs:"..val._l_method_args_:toString())    
         end
     end
     return Method:unExpectCalls(self, 1, ...)
@@ -202,7 +205,7 @@ end
 
 function Method:buildErrMsg(className, functionName, mockMethod)
     local tabSpace = "   "
-    local msg = tabSpace .. className .. "." .. functionName .. mockMethod._l_method_args_:toString() .. " Call times not as expect\n"
+    local msg = ""..tabSpace .. className .. "." .. functionName .. mockMethod._l_method_args_:toString() .. " Call times not as expect\n"
     msg = msg .. tabSpace .. "Expect:" .. tostring(mockMethod._l_method_expect_times:get()) .. "\n"
     msg = msg .. tabSpace .. "Actual:" .. tostring(mockMethod._l_method_actual_times_:get())
     return msg
@@ -238,6 +241,20 @@ function Mock:new(className)
     self.__index = self;
     return mock
 end
+
+function Mock:expectCall(functionName)
+    local mockMethodKey = self._l_mock_class_name_ .. "-" .. functionName
+    if self._l_mock_methods_[mockMethodKey] == nil then
+        local mockMethod = Method:new(self._l_mock_class_name_, functionName)
+        self[functionName] = function(...)
+            return mockMethod:result(...)
+        end
+        self._l_mock_methods_.mockMethodKey = mockMethod
+    end
+    return self._l_mock_methods_.mockMethodKey
+end
+
+
 
 function Mock:mock(functionName, result, times, ...)
     local mockMethodKey = self._l_mock_class_name_ .. "-" .. functionName
